@@ -4,6 +4,7 @@
 
 <script>
     import defaultsDeep from 'lodash.defaultsdeep'
+    import hash from 'object-hash'
     import 'fullcalendar'
     import $ from 'jquery'
 
@@ -66,6 +67,10 @@
                 default() {
                     return {}
                 },
+            },
+            compareEvents: {
+              type: Boolean,
+              default: false,
             },
         },
 
@@ -171,14 +176,66 @@
             fireMethod(...options) {
                 return $(this.$el).fullCalendar(...options)
             },
+            handleEventsRoughly() {
+              $(this.$el).fullCalendar('removeEvents')
+              $(this.$el).fullCalendar('addEventSource', this.events)
+            },
+            handleEventsByComparing(updatedEvents) {
+              const eventsFromCalendar = $(this.$el).fullCalendar('clientEvents');
+              const updatedEventsWithHashes = updatedEvents
+                .map(event => ({ ...event, _hash: hash(event) }));
+
+              const removedEvents = eventsFromCalendar
+                .filter(existed => !updatedEventsWithHashes
+                  .find(created => existed._hash === created._hash)
+                );
+              
+              const idsToRemove = [...removedEvents].map(e => e.id);
+              const shouldBeRemoved = event => idsToRemove.includes(event.id);
+              
+              const createdEvents = updatedEventsWithHashes
+                .filter(event => !eventsFromCalendar
+                  .find(existed => existed._hash === event._hash)
+                );
+
+              const changedEvents = updatedEventsWithHashes
+                .filter((event) => {
+                  const isExisted = (
+                    !createdEvents.find(created => created._hash === event._hash) &&
+                    !removedEvents.find(removed => removed._hash === event._hash)
+                  );
+              
+                  if (!isExisted) {
+                    return false;
+                  }
+              
+                  return !eventsFromCalendar
+                    .find(existed => existed._hash === event._hash);
+                });
+
+              if (idsToRemove.length) {
+                $(this.$el).fullCalendar('removeEvents', shouldBeRemoved);
+              }
+
+              if (changedEvents.length) {
+                $(this.$el).fullCalendar('updateEvents', changedEvents);
+              }
+
+              if (createdEvents.length) {
+                $(this.$el).fullCalendar('addEventSource', createdEvents);
+              }
+            },
         },
 
         watch: {
             events: {
                 deep: true,
-                handler(val) {
-                    $(this.$el).fullCalendar('removeEvents')
-                    $(this.$el).fullCalendar('addEventSource', this.events)
+                handler(updatedEvents) {
+                    if (this.compareEvents) {
+                      this.handleEventsByComparing(updatedEvents);
+                    } else {
+                      this.handleEventsRoughly();
+                    }
                 },
             },
             eventSources: {
