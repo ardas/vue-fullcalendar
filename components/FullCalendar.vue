@@ -190,8 +190,8 @@
                   .find(created => existed._hash === created._hash)
                 );
               
-              const idsToRemove = [...removedEvents].map(e => e.id);
-              const shouldBeRemoved = event => idsToRemove.includes(event.id);
+              const hashesToRemove = [...removedEvents].map(e => e._hash);
+              const shouldBeRemoved = event => hashesToRemove.includes(event._hash);
               
               const createdEvents = updatedEventsWithHashes
                 .filter(event => !eventsFromCalendar
@@ -213,7 +213,7 @@
                     .find(existed => existed._hash === event._hash);
                 });
 
-              if (idsToRemove.length) {
+              if (hashesToRemove.length) {
                 $(this.$el).fullCalendar('removeEvents', shouldBeRemoved);
               }
 
