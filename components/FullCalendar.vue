@@ -68,7 +68,7 @@
                     return {}
                 },
             },
-            compareEvents: {
+            smartUpdateEvents: {
               type: Boolean,
               default: false,
             },
@@ -178,6 +178,7 @@
             },
             handleEventsRoughly() {
               $(this.$el).fullCalendar('removeEvents')
+              $(this.$el).fullCalendar('removeEventSources')
               $(this.$el).fullCalendar('addEventSource', this.events)
             },
             handleEventsByComparing(updatedEvents) {
@@ -231,7 +232,7 @@
             events: {
                 deep: true,
                 handler(updatedEvents) {
-                    if (this.compareEvents) {
+                    if (this.smartUpdateEvents) {
                       this.handleEventsByComparing(updatedEvents);
                     } else {
                       this.handleEventsRoughly();
